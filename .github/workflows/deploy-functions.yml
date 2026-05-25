@@ -22,6 +22,4 @@ jobs:
           npm install
       - name: Deploy to Firebase
         run: |
-          npx firebase-tools deploy --only functions --project tradigoultra-30906
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
+          npx firebase-tools deploy --only functions --project tradigoultranew

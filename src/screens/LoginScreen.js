@@ -24,8 +24,8 @@ export default function LoginScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.logo}>TRADIGO ULTRA</Text>
-      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
+      <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#888" value={email} onChangeText={setEmail} />
+      <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#888" secureTextEntry value={password} onChangeText={setPassword} />
       <TouchableOpacity style={styles.button} onPress={handleAuth}>
         <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Sign Up'}</Text>
       </TouchableOpacity>

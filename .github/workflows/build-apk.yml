@@ -8,12 +8,16 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Create React Native project
-        run: npx react-native init TradigoUltraTemp
-      - name: Move files
+      - name: Install dependencies
+        run: npm install
+      - name: Create React Native project (if missing)
         run: |
-          cp -r TradigoUltraTemp/* .
-          rm -rf TradigoUltraTemp
+          if [ ! -d "android" ]; then
+            npx react-native init TempProject --template react-native-template-typescript
+            cp -r TempProject/* . || true
+            cp -r TempProject/.??* . || true
+            rm -rf TempProject
+          fi
       - name: Setup Java
         uses: actions/setup-java@v3
         with:

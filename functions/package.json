@@ -1,4 +1,4 @@
-cat > package.json << 'EOF'
+
 {
   "name": "functions",
   "description": "Cloud Functions for Tradigo Ultra",
@@ -17,4 +17,4 @@ cat > package.json << 'EOF'
     "dotenv": "^16.0.3"
   }
 }
-EOF
+

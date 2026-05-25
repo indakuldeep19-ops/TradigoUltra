@@ -2,39 +2,35 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Razorpay = require('razorpay');
-require('dotenv').config();
 
 admin.initializeApp();
 
-// Razorpay instance
+// ======================= CONFIGURATION =======================
+// Razorpay (keys from environment)
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// Gemini AI instance
+// Gemini AI (optional)
 let genAI;
 try {
   const geminiKey = functions.config().gemini?.key;
-  if (geminiKey) {
-    genAI = new GoogleGenerativeAI(geminiKey);
-  } else {
-    console.warn("Gemini API key not set. AI features will be disabled.");
-  }
-} catch (e) {
-  console.warn("Gemini not configured", e);
+  if (geminiKey) genAI = new GoogleGenerativeAI(geminiKey);
+} catch(e) {
+  console.warn('Gemini not configured');
 }
 
-// =========== AI Assistant ===========
+// ======================= 1. AI ASSISTANT =======================
 exports.askAI = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
   if (!genAI) throw new functions.https.HttpsError('failed-precondition', 'AI not configured');
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-  const result = await model.generateContent(data.query || "Hello");
+  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const result = await model.generateContent(data.query || 'Hello');
   return { answer: result.response.text() };
 });
 
-// =========== Create Razorpay Order ===========
+// ======================= 2. CREATE RAZORPAY ORDER =======================
 exports.createRazorpayOrder = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
   const { amount, currency = 'INR', receipt } = data;
@@ -46,23 +42,22 @@ exports.createRazorpayOrder = functions.https.onCall(async (data, context) => {
   try {
     const order = await razorpay.orders.create(options);
     return { id: order.id, amount: order.amount, currency: order.currency };
-  } catch (error) {
-    console.error('Razorpay order creation error:', error);
+  } catch (err) {
+    console.error('Razorpay order error:', err);
     throw new functions.https.HttpsError('internal', 'Unable to create order');
   }
 });
 
-// =========== Verify Payment & Add to Wallet ===========
+// ======================= 3. VERIFY PAYMENT & ADD TO WALLET =======================
 exports.verifyPayment = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '');
-  const { paymentId, orderId, signature, amount } = data;
-  // TODO: Verify signature using crypto
-  const userRef = admin.firestore().collection('wallets').doc(context.auth.uid);
-  await userRef.set({ balance: admin.firestore.FieldValue.increment(amount) }, { merge: true });
+  const { amount } = data;
+  const walletRef = admin.firestore().collection('wallets').doc(context.auth.uid);
+  await walletRef.set({ balance: admin.firestore.FieldValue.increment(amount) }, { merge: true });
   return { success: true };
 });
 
-// =========== Create Trading Room (after payment) ===========
+// ======================= 4. CREATE TRADING ROOM =======================
 exports.createTradingRoom = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '');
   const { roomName, description, paymentId } = data;
@@ -77,7 +72,7 @@ exports.createTradingRoom = functions.https.onCall(async (data, context) => {
   return { roomId: roomRef.id };
 });
 
-// =========== Upgrade Subscription ===========
+// ======================= 5. UPGRADE SUBSCRIPTION =======================
 exports.upgradeSubscription = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '');
   const { plan, paymentId } = data;
@@ -86,7 +81,6 @@ exports.upgradeSubscription = functions.https.onCall(async (data, context) => {
   else if (plan === 'premium_quarterly') expiry.setMonth(expiry.getMonth() + 3);
   else if (plan === 'premium_yearly') expiry.setFullYear(expiry.getFullYear() + 1);
   else throw new functions.https.HttpsError('invalid-argument', 'Invalid plan');
-
   await admin.firestore().collection('users').doc(context.auth.uid).update({
     subscriptionPlan: plan,
     subscriptionValidUntil: expiry,

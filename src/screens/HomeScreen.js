@@ -3,13 +3,13 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { auth, db } from '../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const [portfolio, setPortfolio] = useState({ total: 12450.75, change: 8.45 });
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
     return onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      if (doc.exists()) setPortfolio(doc.data().portfolio);
+      if (doc.exists()) setPortfolio(doc.data().portfolio || { total: 12450.75, change: 8.45 });
     });
   }, []);
   return (
@@ -19,7 +19,7 @@ export default function HomeScreen() {
         <Text style={styles.value}>${portfolio.total.toLocaleString()}</Text>
         <Text style={styles.change}>+{portfolio.change}% (24h)</Text>
       </View>
-      <TouchableOpacity style={styles.aiCard}>
+      <TouchableOpacity style={styles.aiCard} onPress={() => navigation.navigate('AI')}>
         <Text style={styles.aiText}>🤖 AI Insight: Bitcoin showing bullish divergence</Text>
       </TouchableOpacity>
     </ScrollView>

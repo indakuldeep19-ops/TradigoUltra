@@ -1,36 +1,44 @@
 name: Build APK
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 18
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-      - name: Install dependencies
+
+      - name: Install dependencies with legacy peer deps
         run: npm install --legacy-peer-deps
-      - name: Create .env file for functions
-        run: |
-          echo "RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}" > functions/.env
-          echo "RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }}" >> functions/.env
-      - name: Create React Native project (if android missing)
+
+      - name: Create React Native project if android folder missing
         run: |
           if [ ! -d "android" ]; then
-            npx react-native init TempProj --template react-native-template-typescript
-            cp -r TempProj/* . || true
-            rm -rf TempProj
+            npx react-native init TempProject --template react-native-template-typescript
+            cp -r TempProject/* . || true
+            cp -r TempProject/.??* . || true
+            rm -rf TempProject
           fi
+
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

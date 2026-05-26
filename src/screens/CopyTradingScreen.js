@@ -2,29 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { auth, db } from '../services/firebase';
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
-import { COPY_PROFIT_SHARE_TO_MASTER, PLATFORM_SHARE_OF_COPY_PROFIT } from '../services/commission';
+import { API_BASE_URL } from '../config';
 
 export default function CopyTradingScreen() {
   const [masters, setMasters] = useState([]);
   const userId = auth.currentUser?.uid;
 
-  useEffect(() => { fetchTopTraders(); }, []);
-
-  const fetchTopTraders = async () => {
-    const q = query(collection(db, 'users'), where('isMasterTrader', '==', true));
-    const snap = await getDocs(q);
-    setMasters(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-  };
+  useEffect(() => {
+    const fetchMasters = async () => {
+      const q = query(collection(db, 'users'), where('isMasterTrader', '==', true));
+      const snap = await getDocs(q);
+      setMasters(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    };
+    fetchMasters();
+  }, []);
 
   const copyTrader = async (masterId, masterName) => {
-    Alert.alert('Copy Trading', `You will copy ${masterName}. Profit share: ${COPY_PROFIT_SHARE_TO_MASTER}% to master, platform fee ${PLATFORM_SHARE_OF_COPY_PROFIT}%.`, [
+    Alert.alert('Copy Trading', `You will copy ${masterName}. Profit share: 25% to master, platform fee 2%.`, [
       { text: 'Cancel' },
       { text: 'Agree', onPress: async () => {
           const copyRef = doc(db, 'copyRelations', `${userId}_${masterId}`);
           await setDoc(copyRef, {
             userId, masterId, createdAt: new Date(),
-            profitSharePercent: COPY_PROFIT_SHARE_TO_MASTER,
-            platformFeePercent: PLATFORM_SHARE_OF_COPY_PROFIT,
+            profitSharePercent: 25, platformFeePercent: 2,
             totalCopiedProfit: 0, totalPlatformFee: 0
           });
           Alert.alert('Copied!', `Now copying ${masterName}`);

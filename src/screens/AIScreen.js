@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
-import { functions } from '../services/firebase';
-import { httpsCallable } from 'firebase/functions';
+import { API_BASE_URL } from '../config';
 
 export default function AIScreen() {
   const [messages, setMessages] = useState([{ id: '1', text: 'Hello! I am your AI trading assistant. Ask me anything about crypto!', sender: 'ai' }]);
@@ -9,32 +8,29 @@ export default function AIScreen() {
   const [loading, setLoading] = useState(false);
 
   const askAI = async () => {
-    
-import { API_BASE_URL } from '../config';
+    if (!input.trim()) return;
+    const userMsg = { id: Date.now().toString(), text: input, sender: 'user' };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setLoading(true);
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: 'ask-ai',
+          data: { query: input }
+        })
+      });
+      const result = await response.json();
+      const aiMsg = { id: (Date.now()+1).toString(), text: result.answer, sender: 'ai' };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (err) {
+      setMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: 'Sorry, AI is unavailable.', sender: 'ai' }]);
+    }
+    setLoading(false);
+  };
 
-const askAI = async () => {
-  if (!input.trim()) return;
-  const userMsg = { id: Date.now().toString(), text: input, sender: 'user' };
-  setMessages(prev => [...prev, userMsg]);
-  setInput('');
-  setLoading(true);
-  try {
-    const response = await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        endpoint: 'ask-ai',
-        data: { query: input }
-      })
-    });
-    const result = await response.json();
-    const aiMsg = { id: (Date.now()+1).toString(), text: result.answer, sender: 'ai' };
-    setMessages(prev => [...prev, aiMsg]);
-  } catch (err) {
-    setMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: 'Error: AI unavailable', sender: 'ai' }]);
-  }
-  setLoading(false);
-};
   return (
     <View style={styles.container}>
       <FlatList data={messages} renderItem={({item}) => (

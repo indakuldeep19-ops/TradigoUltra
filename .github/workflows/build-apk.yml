@@ -21,21 +21,33 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
           
-      - name: Create React Native project
+      - name: Clone a working React Native template (with android folder)
         run: |
-          npx react-native init TradigoUltraBuild --version 0.72.6
-          cp -r TradigoUltraBuild/* .
-          cp -r TradigoUltraBuild/.??* . || true
-          rm -rf TradigoUltraBuild
+          git clone https://github.com/Indakuldeep19-ops/ReactNativeBase.git temp || true
+          if [ -d "temp/android" ]; then
+            cp -r temp/android .
+            cp -r temp/ios . 2>/dev/null || true
+            cp temp/package.json temp-pkg.json 2>/dev/null || true
+          else
+            npx @react-native-community/cli init TempApp --version 0.72.6
+            cp -r TempApp/android .
+            cp -r TempApp/ios . 2>/dev/null || true
+            rm -rf TempApp
+          fi
+          rm -rf temp
           
-      - name: Copy your source files (overwrite with your code)
+      - name: Merge package.json dependencies
         run: |
-          # Your src folder already exists from previous commits
+          # Backup original package.json
+          cp package.json package.json.user
+          # Install dependencies from user's package.json
+          npm install --legacy-peer-deps
+          
+      - name: Copy your source files (overwrite template with your code)
+        run: |
+          # Your src/ and other custom files will overwrite template defaults
           ls -la
           
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-        
       - name: Build APK
         run: |
           cd android

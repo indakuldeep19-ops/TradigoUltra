@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { auth } from '../services/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { API_BASE_URL } from '../config'; // backend URL for adding user
+import { API_BASE_URL } from '../config';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -15,22 +15,15 @@ export default function LoginScreen({ navigation }) {
         await signInWithEmailAndPassword(auth, email, password);
         navigation.replace('Main');
       } else {
-        // Sign up
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        // Optionally send user data to backend (Google Sheets)
-        try {
-          await fetch(API_BASE_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              endpoint: 'add-user',
-              data: { email: email, name: email.split('@')[0], uid: user.uid }
-            })
-          });
-        } catch (err) {
-          console.warn('Backend user add failed', err);
-        }
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        await fetch(API_BASE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: 'add-user',
+            data: { email, name: email.split('@')[0], uid: userCred.user.uid }
+          })
+        });
         navigation.replace('Main');
       }
     } catch (err) {
@@ -41,69 +34,23 @@ export default function LoginScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.logo}>TRADIGO ULTRA</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#888"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#888"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
+      <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
       <TouchableOpacity style={styles.button} onPress={handleAuth}>
         <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Sign Up'}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-        <Text style={styles.switch}>{isLogin ? 'Create an account' : 'Already have an account? Login'}</Text>
+        <Text style={styles.switch}>{isLogin ? 'Create account' : 'Already have an account?'}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0A0A0A',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  logo: {
-    color: '#FFD700',
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  input: {
-    backgroundColor: '#1A1A1A',
-    color: '#FFF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FFD70030',
-  },
-  button: {
-    backgroundColor: '#FFD700',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#000',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  switch: {
-    color: '#FFD700',
-    textAlign: 'center',
-    marginTop: 20,
-  },
+  container: { flex:1, backgroundColor:'#0A0A0A', justifyContent:'center', padding:20 },
+  logo: { color:'#FFD700', fontSize:32, fontWeight:'bold', textAlign:'center', marginBottom:40 },
+  input: { backgroundColor:'#1A1A1A', color:'#FFF', padding:12, borderRadius:8, marginBottom:16, borderWidth:1, borderColor:'#FFD70030' },
+  button: { backgroundColor:'#FFD700', padding:14, borderRadius:8, alignItems:'center' },
+  buttonText: { color:'#000', fontWeight:'bold' },
+  switch: { color:'#FFD700', textAlign:'center', marginTop:20 }
 });

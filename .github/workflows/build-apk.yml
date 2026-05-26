@@ -9,36 +9,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-
+          
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-
-      - name: Install dependencies with legacy peer deps
-        run: npm install --legacy-peer-deps
-
-      - name: Create React Native project if android folder missing
+          
+      - name: Create React Native project
         run: |
-          if [ ! -d "android" ]; then
-            npx react-native init TempProject --template react-native-template-typescript
-            cp -r TempProject/* . || true
-            cp -r TempProject/.??* . || true
-            rm -rf TempProject
-          fi
-
+          npx react-native init TradigoUltraBuild --version 0.72.6
+          cp -r TradigoUltraBuild/* .
+          cp -r TradigoUltraBuild/.??* . || true
+          rm -rf TradigoUltraBuild
+          
+      - name: Copy your source files (overwrite with your code)
+        run: |
+          # Your src folder already exists from previous commits
+          ls -la
+          
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+        
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
-
+          
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

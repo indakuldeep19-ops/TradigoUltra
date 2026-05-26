@@ -9,51 +9,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-          
-      - name: Clone a working React Native template (with android folder)
+      - name: Create React Native project
         run: |
-          git clone https://github.com/Indakuldeep19-ops/ReactNativeBase.git temp || true
-          if [ -d "temp/android" ]; then
-            cp -r temp/android .
-            cp -r temp/ios . 2>/dev/null || true
-            cp temp/package.json temp-pkg.json 2>/dev/null || true
-          else
-            npx @react-native-community/cli init TempApp --version 0.72.6
-            cp -r TempApp/android .
-            cp -r TempApp/ios . 2>/dev/null || true
-            rm -rf TempApp
-          fi
-          rm -rf temp
-          
-      - name: Merge package.json dependencies
+          npx react-native init TempProject --version 0.72.6
+          cp -r TempProject/android .
+          cp -r TempProject/ios . 2>/dev/null || true
+          rm -rf TempProject
+      - name: Copy your source files (overwrite with your code)
         run: |
-          # Backup original package.json
-          cp package.json package.json.user
-          # Install dependencies from user's package.json
+          cp -r src . 2>/dev/null || true
+          cp App.js . 2>/dev/null || true
+      - name: Install dependencies
+        run: |
           npm install --legacy-peer-deps
-          
-      - name: Copy your source files (overwrite template with your code)
-        run: |
-          # Your src/ and other custom files will overwrite template defaults
-          ls -la
-          
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
-          
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

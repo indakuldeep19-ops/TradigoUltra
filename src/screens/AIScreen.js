@@ -9,22 +9,32 @@ export default function AIScreen() {
   const [loading, setLoading] = useState(false);
 
   const askAI = async () => {
-    if (!input.trim()) return;
-    const userMsg = { id: Date.now().toString(), text: input, sender: 'user' };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    setLoading(true);
-    try {
-      const askFunction = httpsCallable(functions, 'askAI');
-      const result = await askFunction({ query: input, userLevel: 'beginner' });
-      const aiMsg = { id: (Date.now()+1).toString(), text: result.data.answer, sender: 'ai' };
-      setMessages(prev => [...prev, aiMsg]);
-    } catch (err) {
-      setMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: 'Sorry, AI is unavailable.', sender: 'ai' }]);
-    }
-    setLoading(false);
-  };
+    
+import { API_BASE_URL } from '../config';
 
+const askAI = async () => {
+  if (!input.trim()) return;
+  const userMsg = { id: Date.now().toString(), text: input, sender: 'user' };
+  setMessages(prev => [...prev, userMsg]);
+  setInput('');
+  setLoading(true);
+  try {
+    const response = await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpoint: 'ask-ai',
+        data: { query: input }
+      })
+    });
+    const result = await response.json();
+    const aiMsg = { id: (Date.now()+1).toString(), text: result.answer, sender: 'ai' };
+    setMessages(prev => [...prev, aiMsg]);
+  } catch (err) {
+    setMessages(prev => [...prev, { id: (Date.now()+1).toString(), text: 'Error: AI unavailable', sender: 'ai' }]);
+  }
+  setLoading(false);
+};
   return (
     <View style={styles.container}>
       <FlatList data={messages} renderItem={({item}) => (

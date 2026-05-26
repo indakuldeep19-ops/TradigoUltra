@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { auth, db } from '../services/firebase';
+import { auth } from '../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen() {
   const [portfolio, setPortfolio] = useState({ total: 12450.75, change: 8.45 });
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
-    return onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      if (doc.exists()) setPortfolio(doc.data().portfolio || { total: 12450.75, change: 8.45 });
+    return onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+      if (docSnap.exists()) setPortfolio(docSnap.data().portfolio || { total: 12450.75, change: 8.45 });
     });
   }, []);
   return (
@@ -19,13 +20,12 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.value}>${portfolio.total.toLocaleString()}</Text>
         <Text style={styles.change}>+{portfolio.change}% (24h)</Text>
       </View>
-      <TouchableOpacity style={styles.aiCard} onPress={() => navigation.navigate('AI')}>
+      <TouchableOpacity style={styles.aiCard}>
         <Text style={styles.aiText}>🤖 AI Insight: Bitcoin showing bullish divergence</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex:1, backgroundColor:'#0A0A0A', padding:16 },
   card: { backgroundColor:'#1A1A1A', padding:20, borderRadius:20, borderColor:'#FFD70030', borderWidth:1, marginBottom:16 },

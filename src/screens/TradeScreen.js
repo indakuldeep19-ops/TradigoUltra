@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
 import axios from 'axios';
 import { auth } from '../services/firebase';
-import { deductTradeCommission } from '../services/commission';
+import { API_BASE_URL } from '../config';
 
 const { width } = Dimensions.get('window');
 
@@ -38,8 +37,16 @@ export default function TradeScreen({ route }) {
   const executeTrade = async (type) => {
     if (!amount) return Alert.alert('Error', 'Enter amount');
     const amountUsd = parseFloat(amount);
-    const fee = await deductTradeCommission(userId, amountUsd, type, symbol);
-    Alert.alert('Trade Executed', `${type} ${amountUsd} USD of ${symbol}\nCommission: $${fee.toFixed(2)}`);
+    // Call backend to record trade (optional)
+    await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpoint: 'add-trade',
+        data: { userId, symbol, amount: amountUsd, type }
+      })
+    });
+    Alert.alert('Trade Executed', `${type} ${amountUsd} USD of ${symbol}`);
   };
 
   return (

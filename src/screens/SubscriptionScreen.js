@@ -1,25 +1,34 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { auth, functions } from '../services/firebase';
-import { httpsCallable } from 'firebase/functions';
-import { SUBSCRIPTION_PLANS } from '../services/commission';
-import RazorpayCheckout from 'react-native-razorpay';
+import { API_BASE_URL } from '../config';
+import * as Razorpay from 'expo-razorpay';
 
 export default function SubscriptionScreen() {
-  const subscribe = async (planKey, price) => {
-    var options = {
-      description: `Upgrade to ${SUBSCRIPTION_PLANS[planKey].name}`,
-      currency: 'INR',
-      amount: price * 100,
-      name: 'Tradigo Ultra',
-      prefill: { email: auth.currentUser?.email },
-      theme: { color: '#FFD700' }
-    };
-    RazorpayCheckout.open(options).then(async (payment) => {
-      const upgradeFn = httpsCallable(functions, 'upgradeSubscription');
-      await upgradeFn({ plan: planKey, paymentId: payment.razorpay_payment_id });
+  const subscribe = async (planName, price) => {
+    try {
+      const orderRes = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: 'create-order', data: { amount: price * 100, currency: 'INR' } })
+      });
+      const order = await orderRes.json();
+      const options = {
+        description: `Upgrade to ${planName}`,
+        currency: 'INR',
+        amount: order.amount,
+        order_id: order.id,
+        key: 'rzp_test_YOUR_KEY_ID',
+        name: 'Tradigo Ultra',
+        prefill: { email: auth.currentUser?.email },
+        theme: { color: '#FFD700' }
+      };
+      await Razorpay.pay(options);
+      // Optionally update subscription in Firestore
       Alert.alert('Success', 'Subscription activated!');
-    }).catch(err => Alert.alert('Payment failed', err.code));
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
   };
 
   return (
@@ -31,13 +40,13 @@ export default function SubscriptionScreen() {
         <Text>• Copy fee: 25% profit share</Text>
         <Text>• Room fee: ₹150</Text>
       </View>
-      <TouchableOpacity style={styles.subscribeBtn} onPress={() => subscribe('premium_monthly', 399)}>
+      <TouchableOpacity style={styles.subscribeBtn} onPress={() => subscribe('Premium Monthly', 399)}>
         <Text style={styles.btnText}>Premium Monthly – ₹399</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.subscribeBtn} onPress={() => subscribe('premium_quarterly', 599)}>
+      <TouchableOpacity style={styles.subscribeBtn} onPress={() => subscribe('Premium Quarterly', 599)}>
         <Text style={styles.btnText}>Premium Quarterly – ₹599</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.subscribeBtn} onPress={() => subscribe('premium_yearly', 999)}>
+      <TouchableOpacity style={styles.subscribeBtn} onPress={() => subscribe('Premium Yearly', 999)}>
         <Text style={styles.btnText}>Premium Yearly – ₹999</Text>
       </TouchableOpacity>
     </View>

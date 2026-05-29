@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body style="background: #0A0A0A; color: #FFD700; font-family: sans-serif;">
+    <h1>Tradigo Ultra Admin</h1>
+    <div>
+        <h3>Post Trading Signal</h3>
+        <input type="text" id="sym" placeholder="BTC/USDT">
+        <select id="act"><option>BUY</option><option>SELL</option></select>
+        <button onclick="postSignal()">Post to App</button>
+    </div>
+    <script>
+        const WEB_APP_URL = "YOUR_APPS_SCRIPT_URL";
+        async function postSignal() {
+            const data = {
+                action: 'addSignal',
+                symbol: document.getElementById('sym').value,
+                type: document.getElementById('act').value
+            };
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(data) });
+            alert("Signal Live!");
+        }
+    </script>
+</body>
+</html>

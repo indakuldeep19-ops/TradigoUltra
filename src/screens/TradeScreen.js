@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import axios from 'axios';
-import { auth } from '../services/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config';
 
 const { width } = Dimensions.get('window');
@@ -15,7 +15,7 @@ export default function TradeScreen({ route }) {
   const [amount, setAmount] = useState('');
   const [orderType, setOrderType] = useState('market');
   const [limitPrice, setLimitPrice] = useState('');
-  const userId = auth.currentUser?.uid;
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchMarketData();
@@ -37,16 +37,25 @@ export default function TradeScreen({ route }) {
   const executeTrade = async (type) => {
     if (!amount) return Alert.alert('Error', 'Enter amount');
     const amountUsd = parseFloat(amount);
-    // Call backend to record trade (optional)
-    await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        endpoint: 'add-trade',
-        data: { userId, symbol, amount: amountUsd, type }
-      })
-    });
-    Alert.alert('Trade Executed', `${type} ${amountUsd} USD of ${symbol}`);
+    setLoading(true);
+    const token = await AsyncStorage.getItem('token');
+    try {
+      const res = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: 'trade',
+          data: { token, symbol, type, amount: amountUsd, isBuddyTrade: false }
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        Alert.alert('Trade Executed', `${type} ${amountUsd} USD of ${symbol}\nCommission: $${result.commission}`);
+      } else {
+        Alert.alert('Error', result.error);
+      }
+    } catch (err) { Alert.alert('Network Error', err.message); }
+    setLoading(false);
   };
 
   return (
@@ -62,8 +71,12 @@ export default function TradeScreen({ route }) {
       <TextInput style={styles.input} placeholder="Amount (USD)" value={amount} onChangeText={setAmount} keyboardType="numeric" />
       {orderType === 'limit' && <TextInput style={styles.input} placeholder="Limit Price" value={limitPrice} onChangeText={setLimitPrice} keyboardType="numeric" />}
       <View style={styles.buttons}>
-        <TouchableOpacity style={[styles.tradeBtn, {backgroundColor:'#00FF00'}]} onPress={()=>executeTrade('Buy')}><Text style={styles.btnText}>BUY</Text></TouchableOpacity>
-        <TouchableOpacity style={[styles.tradeBtn, {backgroundColor:'#FF4444'}]} onPress={()=>executeTrade('Sell')}><Text style={styles.btnText}>SELL</Text></TouchableOpacity>
+        <TouchableOpacity style={[styles.tradeBtn, {backgroundColor:'#00FF00'}]} onPress={()=>executeTrade('Buy')} disabled={loading}>
+          <Text style={styles.btnText}>{loading ? 'Processing...' : 'BUY'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tradeBtn, {backgroundColor:'#FF4444'}]} onPress={()=>executeTrade('Sell')} disabled={loading}>
+          <Text style={styles.btnText}>{loading ? 'Processing...' : 'SELL'}</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

@@ -1,37 +1,43 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ImageBackground } from 'react-native';
-import { auth } from '../services/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const handleAuth = async () => {
     if (!email || !password) return Alert.alert('Error', 'Please fill all fields');
+    setLoading(true);
     try {
-      if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+      const endpoint = isLogin ? 'login' : 'register';
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint,
+          data: { email, password, name: email.split('@')[0] }
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        if (isLogin) await AsyncStorage.setItem('token', result.token);
         navigation.replace('Main');
       } else {
-        const userCred = await createUserWithEmailAndPassword(auth, email, password);
-        // Optional: save to backend
-        await fetch(API_BASE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: 'add-user', data: { email, name: email.split('@')[0], uid: userCred.user.uid } })
-        }).catch(console.warn);
-        navigation.replace('Main');
+        Alert.alert('Error', result.error || 'Authentication failed');
       }
     } catch (err) {
-      Alert.alert('Authentication Error', err.message);
+      Alert.alert('Network Error', err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <ImageBackground source={require('../assets/pattern.png')} style={styles.background} resizeMode="cover">
+    <ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=800' }} style={styles.background} resizeMode="cover">
       <View style={styles.overlay}>
         <View style={styles.card}>
           <Text style={styles.logo}>TRADIGO</Text>
@@ -39,8 +45,8 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.welcome}>{isLogin ? 'Welcome Back!' : 'Create Account'}</Text>
           <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#aaa" value={email} onChangeText={setEmail} autoCapitalize="none" />
           <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#aaa" secureTextEntry value={password} onChangeText={setPassword} />
-          <TouchableOpacity style={styles.button} onPress={handleAuth}>
-            <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Sign Up'}</Text>
+          <TouchableOpacity style={styles.button} onPress={handleAuth} disabled={loading}>
+            <Text style={styles.buttonText}>{loading ? 'Please wait...' : (isLogin ? 'Login' : 'Sign Up')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
             <Text style={styles.switchText}>{isLogin ? 'New user? Create account' : 'Already have an account? Login'}</Text>

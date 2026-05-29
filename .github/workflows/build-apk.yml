@@ -1,45 +1,22 @@
-name: Build APK from GitHub
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+name: Build Tradigo APK
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Setup Java
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
           java-version: '17'
-
-      - name: Download pre-built React Native template (with android folder)
-        run: |
-          git clone --depth 1 --branch v0.72.6 https://github.com/facebook/react-native.git template
-          cp -r template/template/android .
-          cp -r template/template/ios . 2>/dev/null || true
-          cp template/template/package.json template-pkg.json
-          rm -rf template
-
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
+          distribution: 'temurin'
+          
       - name: Build APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease
+        run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: tradigo-app
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: TradigoUltra-Debug
+          path: app/build/outputs/apk/debug/app-debug.apk

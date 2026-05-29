@@ -5,26 +5,21 @@ import { API_BASE_URL } from '../config';
 export default function SignalsScreen() {
   const [signals, setSignals] = useState([]);
   useEffect(() => {
-    fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: 'get-signals', data: {} })
-    })
-      .then(res => res.json())
-      .then(data => setSignals(data.signals || []));
+    fetch(API_BASE_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ endpoint:'getSignals', data:{} }) })
+      .then(res=>res.json()).then(data=>setSignals(data.signals || []));
   }, []);
   return (
     <View style={styles.container}>
       <FlatList data={signals} renderItem={({item}) => (
         <View style={styles.card}>
           <Text style={styles.symbol}>{item.symbol}</Text>
-          <Text style={[styles.action, item.action === 'BUY' ? styles.buy : styles.sell]}>{item.action}</Text>
-          <Text>Entry: ${item.entryPrice}</Text>
-          <Text>Target: ${item.targetPrice}</Text>
-          <Text>Stop: ${item.stopLoss}</Text>
+          <Text style={[styles.action, item.action==='BUY'?styles.buy:styles.sell]}>{item.action}</Text>
+          <Text>Entry: ${item.entry}</Text>
+          <Text>Target: ${item.target}</Text>
+          <Text>Stop: ${item.stop}</Text>
           <Text>Confidence: {item.confidence}%</Text>
         </View>
-      )} keyExtractor={item => item.id} />
+      )} keyExtractor={(item,i)=>i.toString()} />
     </View>
   );
 }

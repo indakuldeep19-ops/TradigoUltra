@@ -1,18 +1,20 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
 import { Video } from 'expo-av';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Localization from 'expo-localization';
 
 const { width, height } = Dimensions.get('window');
 
+// Sample reels – in real app, fetch from backend with language tags
 const DEMO_REELS = [
-  { id: '1', videoUrl: 'https://www.sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', user: 'CryptoMaster', likes: 1200, description: 'How to read candlesticks' },
-  { id: '2', videoUrl: 'https://www.sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4', user: 'TraderJenny', likes: 3400, description: 'Bullish pattern breakout' },
+  { id: '1', videoUrl: 'https://www.sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', user: 'CryptoMaster', likes: 1200, description: 'How to read candlesticks', language: 'en' },
+  { id: '2', videoUrl: 'https://www.sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4', user: 'TraderJenny', likes: 3400, description: 'Bullish pattern breakout', language: 'hi' },
 ];
 
 export default function ReelsScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [reels, setReels] = useState(DEMO_REELS);
+  const [reels, setReels] = useState(DEMO_REELS.filter(r => r.language === Localization.locale.split('-')[0] || r.language === 'en'));
   const flatListRef = useRef(null);
   const videoRefs = useRef({});
 

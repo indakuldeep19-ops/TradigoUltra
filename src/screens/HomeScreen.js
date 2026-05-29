@@ -2,34 +2,53 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
-import { auth, db } from '../services/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
-import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../config';
 import { BlurView } from 'expo-blur';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const [portfolio, setPortfolio] = useState({ total: 12450.75, change: 8.45 });
+  const [portfolio, setPortfolio] = useState({ total: 0, change: 0 });
   const [marketData, setMarketData] = useState([]);
+  const [aiInsight, setAiInsight] = useState('Loading market insights...');
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    fetchPortfolio();
     fetchMarket();
-    const user = auth.currentUser;
-    if (user) return onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
-      if (docSnap.exists()) setPortfolio(docSnap.data().portfolio || { total: 12450.75, change: 8.45 });
-    });
+    fetchAIInsight();
   }, []);
+
+  const fetchPortfolio = async () => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: 'getPortfolio', data: { token } })
+      });
+      const data = await res.json();
+      if (data.success) setPortfolio({ total: data.total, change: data.change });
+    } catch (err) { console.error(err); }
+  };
 
   const fetchMarket = async () => {
     try {
-      const res = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
-      setMarketData([{ symbol: 'BTC', price: parseFloat(res.data.lastPrice), change: parseFloat(res.data.priceChangePercent) }]);
-    } catch (error) { console.error(error); }
+      // Using Binance public API for BTC price (demo)
+      const res = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
+      const data = await res.json();
+      setMarketData([{ symbol: 'BTC', price: parseFloat(data.lastPrice), change: parseFloat(data.priceChangePercent) }]);
+    } catch (err) { console.error(err); }
   };
 
-  const onRefresh = async () => { setRefreshing(true); await fetchMarket(); setRefreshing(false); };
+  const fetchAIInsight = async () => {
+    setAiInsight('BTC showing bullish divergence on RSI. Consider accumulation around $65k.');
+  };
+
+  const onRefresh = async () => { setRefreshing(true); await fetchPortfolio(); await fetchMarket(); setRefreshing(false); };
 
   return (
     <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFD700" />}>
@@ -60,7 +79,7 @@ export default function HomeScreen() {
           <Ionicons name="bulb-outline" size={24} color="#FFD700" />
           <Text style={styles.aiTitle}>AI Market Insight</Text>
         </View>
-        <Text style={styles.aiText}>Bitcoin showing bullish divergence on RSI. Consider accumulation zone $64k-$65k.</Text>
+        <Text style={styles.aiText}>{aiInsight}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
